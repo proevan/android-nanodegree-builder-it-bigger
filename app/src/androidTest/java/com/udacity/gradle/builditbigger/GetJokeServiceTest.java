@@ -3,6 +3,7 @@ package com.udacity.gradle.builditbigger;
 import junit.framework.TestCase;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class GetJokeServiceTest extends TestCase {
 
@@ -30,7 +31,7 @@ public class GetJokeServiceTest extends TestCase {
         });
 
         // assert
-        mCountDownLatch.await();
+        mCountDownLatch.await(25, TimeUnit.SECONDS);
         assertTrue(mIsTestPassed);
     }
 
