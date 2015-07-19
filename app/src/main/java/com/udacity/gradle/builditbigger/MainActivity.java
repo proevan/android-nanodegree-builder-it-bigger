@@ -1,5 +1,6 @@
 package com.udacity.gradle.builditbigger;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
@@ -7,19 +8,18 @@ import android.view.MenuItem;
 import android.view.View;
 
 import com.gc.materialdesign.views.ProgressBarCircularIndeterminate;
+import com.proevan.jokecontainer.JokeContainerActivity;
 
 public class MainActivity extends ActionBarActivity {
 
+    private GetJokeService mGetJokeService;
     private ProgressBarCircularIndeterminate mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initProgressDialog();
-    }
-
-    private void initProgressDialog() {
+        mGetJokeService = new GetJokeService(JokeApiSingleton.getInstance());
         mProgressBar = (ProgressBarCircularIndeterminate) findViewById(R.id.progress_view);
     }
 
@@ -47,11 +47,23 @@ public class MainActivity extends ActionBarActivity {
 
     public void onTellJokeButtonClick(View view){
         if (!isLoading()) {
-            new GetJokeAsyncTask(this, mProgressBar).execute();
+            mProgressBar.setVisibility(View.VISIBLE);
+            mGetJokeService.getJoke(new GetJokeService.Callback() {
+                @Override
+                public void onComplete(String jokeText) {
+                    mProgressBar.setVisibility(View.GONE);
+                    showJokePage(jokeText);
+                }
+            });
         }
     }
 
     private boolean isLoading() {
         return mProgressBar.getVisibility() == View.VISIBLE;
+    }
+
+    private void showJokePage(String jokeText) {
+        Intent launchIntent = JokeContainerActivity.getCallingIntent(this, jokeText);
+        startActivity(launchIntent);
     }
 }
