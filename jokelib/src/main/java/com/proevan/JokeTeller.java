@@ -2,7 +2,7 @@ package com.proevan;
 
 public class JokeTeller {
 
-    public String getJoke() {
-        return "A joke";
+    public Joke getJoke() {
+        return JokeData.getRandomJoke();
     }
 }

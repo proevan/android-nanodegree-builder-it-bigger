@@ -1,27 +1,36 @@
 package com.udacity.gradle.builditbigger;
 
+import android.content.Context;
 import android.content.Intent;
-import android.support.v7.app.ActionBarActivity;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Toast;
 
-import com.proevan.JokeTeller;
+import com.gc.materialdesign.views.ProgressBarCircularIndeterminate;
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.extensions.android.json.AndroidJsonFactory;
 import com.proevan.jokecontainer.JokeContainerActivity;
+import com.proevan.nanodegree.builditbigger.backend.jokeApi.JokeApi;
 
+import java.io.IOException;
 
 public class MainActivity extends ActionBarActivity {
 
-    private JokeTeller mJokeTeller = new JokeTeller();
+    private ProgressBarCircularIndeterminate mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initProgressDialog();
     }
 
+    private void initProgressDialog() {
+        mProgressBar = (ProgressBarCircularIndeterminate) findViewById(R.id.progress_view);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -45,15 +54,62 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void showJoke(View view){
-        String joke = mJokeTeller.getJoke();
-        if (joke != null) {
-            Intent launchIntent = JokeContainerActivity.getCallingIntent(this, joke);
-            startActivity(launchIntent);
-        } else {
-            Toast.makeText(MainActivity.this, R.string.message_no_joke, Toast.LENGTH_SHORT).show();
+    public void onTellJokeButtonClick(View view){
+        if (!isLoading()) {
+            new GetJokeAsyncTask(this, mProgressBar).execute();
         }
     }
 
+    private boolean isLoading() {
+        return mProgressBar.getVisibility() == View.VISIBLE;
+    }
 
+    static class GetJokeAsyncTask extends AsyncTask<Void, Void, String> {
+
+        private static JokeApi myApiService = null;
+        private Context mContext;
+        private ProgressBarCircularIndeterminate mProgressBar;
+
+        public GetJokeAsyncTask(Context context, ProgressBarCircularIndeterminate progressDialog) {
+            mContext = context;
+            mProgressBar = progressDialog;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            mProgressBar.setVisibility(View.VISIBLE);
+        }
+
+        @Override
+        protected String doInBackground(Void... params) {
+            if(myApiService == null) {  // Only do this once
+                JokeApi.Builder builder = new JokeApi.Builder(AndroidHttp.newCompatibleTransport(), new AndroidJsonFactory(), null)
+                        .setRootUrl("https://android-nanodegree.appspot.com/_ah/api/");
+
+                myApiService = builder.build();
+            }
+
+            try {
+                return myApiService.getJoke().execute().getText();
+            } catch (IOException e) {
+                return e.getMessage();
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            mProgressBar.setVisibility(View.GONE);
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            mProgressBar.setVisibility(View.GONE);
+            showJokePage(result);
+        }
+
+        private void showJokePage(String jokeText) {
+            Intent launchIntent = JokeContainerActivity.getCallingIntent(mContext, jokeText);
+            mContext.startActivity(launchIntent);
+        }
+    }
 }
